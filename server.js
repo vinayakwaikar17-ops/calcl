@@ -4,58 +4,79 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 
 // --------------------
-// API ROUTES
+// BASIC CALCULATOR API
 // --------------------
-
-// Basic calculator API
 app.post("/api/basic", (req, res) => {
-  const { a, b, operator } = req.body;
+  let { a, b, operator, num1, num2, op } = req.body;
+
+  // Support multiple frontend payload styles
+  const x = Number(a ?? num1);
+  const y = Number(b ?? num2);
+  const operation = operator ?? op;
+
+  if (isNaN(x) || isNaN(y) || !operation) {
+    return res.json({
+      error: "Invalid input",
+      received: req.body
+    });
+  }
 
   let result;
 
-  switch (operator) {
+  switch (operation) {
     case "+":
-      result = a + b;
+    case "add":
+      result = x + y;
       break;
     case "-":
-      result = a - b;
+    case "sub":
+      result = x - y;
       break;
     case "*":
-      result = a * b;
+    case "mul":
+      result = x * y;
       break;
     case "/":
-      result = b !== 0 ? a / b : "Division by zero";
+    case "div":
+      result = y !== 0 ? x / y : "Division by zero";
       break;
     default:
-      return res.status(400).json({ error: "Invalid operator" });
+      return res.json({ error: "Unknown operator" });
   }
 
   res.json({ result });
 });
 
-// GST calculator API
+// --------------------
+// GST CALCULATOR API
+// --------------------
 app.post("/api/gst", (req, res) => {
-  const { amount, rate, type } = req.body;
+  let { amount, rate, type } = req.body;
 
-  const gst = (amount * rate) / 100;
+  const base = Number(amount);
+  const gstRate = Number(rate);
 
-  let response = {
-    baseAmount: amount,
-    gstRate: rate,
-    gstAmount: gst
-  };
-
-  if (type === "inclusive") {
-    response.total = amount;
-  } else {
-    response.total = amount + gst;
+  if (isNaN(base) || isNaN(gstRate)) {
+    return res.json({
+      error: "Invalid GST input",
+      received: req.body
+    });
   }
 
-  res.json(response);
+  const gst = (base * gstRate) / 100;
+
+  res.json({
+    baseAmount: base,
+    gstRate,
+    gstAmount: gst,
+    total:
+      type === "inclusive"
+        ? base
+        : base + gst
+  });
 });
 
 // --------------------
@@ -71,4 +92,3 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Calculator App running on port ${PORT}`);
 });
-
